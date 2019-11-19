@@ -11,7 +11,7 @@ func TestVariableLengthInteger(t *testing.T) {
 	bs[0] = 0xFF
 	bs[1] = 0x7F
 
-	v, n, err := ReadVariableLengthInteger(bs)
+	v, n, err := readVariableLengthInteger(bs)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -28,7 +28,7 @@ func TestVariableLengthInteger(t *testing.T) {
 	bs[0] = 0x87
 	bs[1] = 0x68
 
-	v, n, err = ReadVariableLengthInteger(bs)
+	v, n, err = readVariableLengthInteger(bs)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -46,7 +46,7 @@ func TestVariableLengthInteger(t *testing.T) {
 	bs[1] = 0x84
 	bs[2] = 0x40
 
-	v, n, err = ReadVariableLengthInteger(bs)
+	v, n, err = readVariableLengthInteger(bs)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -64,7 +64,7 @@ func TestVariableLengthInteger(t *testing.T) {
 	bs[0] = 0xFF
 	bs[1] = 0xFF
 
-	v, n, err = ReadVariableLengthInteger(bs)
+	v, n, err = readVariableLengthInteger(bs)
 	if err == nil {
 		t.Errorf("expected ReadVariableLengthInteger to return an error")
 	}
@@ -88,15 +88,10 @@ func TestMidi(t *testing.T) {
 	t.Logf("%v", *mf.Info)
 	t.Logf("chunks %v\n", mf.Chunks)
 
-	if len(mf.Chunks) > 1 {
-		chunk := mf.Chunks[2]
-		t.Logf("chunk type: %v\n", chunk.Type)
-		events, err := chunk.Events()
-		if err != nil {
-			t.Fatalf("err %v", err)
-		}
+	if len(mf.Tracks) > 0 {
+		track := mf.Tracks[3]
 
-		for _, event := range events {
+		for _, event := range track.Events {
 			t.Logf("deltaTime %v - event %v", event.DeltaTime(), eventTypeToString(event.EventType()))
 		}
 	}
