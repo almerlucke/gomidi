@@ -89,7 +89,7 @@ func TestMidi(t *testing.T) {
 	t.Logf("chunks %v\n", mf.Chunks)
 
 	if len(mf.Chunks) > 1 {
-		chunk := mf.Chunks[1]
+		chunk := mf.Chunks[2]
 		t.Logf("chunk type: %v\n", chunk.Type)
 		events, err := chunk.Events()
 		if err != nil {
@@ -97,7 +97,7 @@ func TestMidi(t *testing.T) {
 		}
 
 		for _, event := range events {
-			t.Logf("deltaTime %v - event %v", event.GetDeltaTime(), eventTypeToString(event.GetEventType()))
+			t.Logf("deltaTime %v - event %v", event.DeltaTime(), eventTypeToString(event.EventType()))
 		}
 	}
 }

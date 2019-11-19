@@ -11,15 +11,100 @@ import (
 // ChunkType indicates the type of chunk we are dealing with
 type ChunkType string
 
+// Format type
+type Format uint16
+
+// DivisionType midi delta time
+type DivisionType uint8
+
+// EventType to identify midi events
+type EventType uint8
+
+// MetaType to identify meta events
+type MetaType uint8
+
+// Chunk holds midi chunk information
+type Chunk struct {
+	io.WriterTo
+	io.ReaderFrom
+	Type   ChunkType
+	Length uint32
+	Data   []byte
+}
+
+// HeaderInfo holds midi file header info
+type HeaderInfo struct {
+	Format              Format
+	NumTracks           uint16
+	Division            uint16
+	DivisionType        DivisionType
+	TicksPerQuarterNote uint16
+	FramesPerSecond     uint8
+	TicksPerFrame       uint8
+}
+
+// File holds all midi chunks and other info
+type File struct {
+	io.WriterTo
+	io.ReaderFrom
+	Info   *HeaderInfo
+	Chunks []*Chunk
+}
+
+// Event interface for all midi events
+type Event interface {
+	DeltaTime() uint32
+	EventType() EventType
+}
+
+// CoreEvent to include by other event structs to satisfy Event interface
+type CoreEvent struct {
+	deltaTime uint32
+	eventType EventType
+}
+
+// MetaEvent struct for all meta events
+type MetaEvent struct {
+	CoreEvent
+	MetaType MetaType
+	Data     []byte
+}
+
+// SystemRealTimeEvent real time event
+type SystemRealTimeEvent struct {
+	CoreEvent
+}
+
+// SystemExclusiveEvent representation
+type SystemExclusiveEvent struct {
+	CoreEvent
+	Data []byte
+}
+
+// ChannelEvent represents channel voice and mode messages
+type ChannelEvent struct {
+	CoreEvent
+	Channel uint16
+	Value1  uint16
+	Value2  uint16
+}
+
+// SystemCommonEvent represents a system common message
+type SystemCommonEvent struct {
+	CoreEvent
+	Value1 uint16
+	Value2 uint16
+}
+
+// ParseFunction type
+type ParseFunction func(statusByte uint8, deltaTime uint32, data []byte) (event Event, bytesRead uint32, err error)
+
 const (
 	// HeaderType indicates a midi header chunk
 	HeaderType ChunkType = "MThd"
 	// TrackType indicates a midi track chunk
 	TrackType ChunkType = "MTrk"
 )
-
-// Format type
-type Format uint16
 
 const (
 	// Format0 midi file
@@ -30,18 +115,12 @@ const (
 	Format2 Format = 2
 )
 
-// DivisionType midi delta time
-type DivisionType uint8
-
 const (
 	// DivisionTicksPerQuarterNote division
 	DivisionTicksPerQuarterNote DivisionType = 0
 	// DivisionFramesTicks division
 	DivisionFramesTicks DivisionType = 1
 )
-
-// EventType to identify midi events
-type EventType uint8
 
 const (
 	// NoteOff midi event
@@ -80,200 +159,107 @@ const (
 	Meta
 )
 
-// MetaType to identify meta events
-type MetaType uint8
-
 const (
 	// SequenceNumber meta event
-	SequenceNumber MetaType = iota
+	SequenceNumber MetaType = 0x0
 	// Text meta event
-	Text
+	Text MetaType = 0x1
 	// CopyrightNotice meta event
-	CopyrightNotice
+	CopyrightNotice MetaType = 0x2
 	// TrackName meta event
-	TrackName
+	TrackName MetaType = 0x3
 	// InstrumentName meta event
-	InstrumentName
+	InstrumentName MetaType = 0x4
 	// Lyric meta event
-	Lyric
+	Lyric MetaType = 0x5
 	// Marker meta event
-	Marker
+	Marker MetaType = 0x6
 	// CuePoint meta event
-	CuePoint
+	CuePoint MetaType = 0x7
 	// ChannelPrefix meta event
-	ChannelPrefix
+	ChannelPrefix MetaType = 0x20
 	// EndOfTrack meta event
-	EndOfTrack
+	EndOfTrack MetaType = 0x2F
 	// SetTempo meta event
-	SetTempo
+	SetTempo MetaType = 0x51
 	// SMPTEOffset meta event
-	SMPTEOffset
+	SMPTEOffset MetaType = 0x54
 	// TimeSignature meta event
-	TimeSignature
+	TimeSignature MetaType = 0x58
 	// KeySignature meta event
-	KeySignature
+	KeySignature MetaType = 0x59
 	// SequencerSpecific meta event
-	SequencerSpecific
+	SequencerSpecific MetaType = 0x7F
 )
 
-// Chunk holds midi chunk information
-type Chunk struct {
-	io.WriterTo
-	io.ReaderFrom
-	Type   ChunkType
-	Length uint32
-	Data   []byte
+var eventTypeToParseFunctionMapping = map[EventType]ParseFunction{
+	NoteOff:               ParseNoteOff,
+	NoteOn:                ParseNoteOn,
+	PolyphonicKeyPressure: ParsePolyphonicKeyPressure,
+	ControlChange:         ParseControlChange,
+	ProgramChange:         ParseProgramChange,
+	ChannelPressure:       ParseChannelPressure,
+	PitchWheelChange:      ParsePitchWheelChange,
+	SystemExclusive:       ParseSystemExclusive,
+	SongPositionPointer:   ParseSongPositionPointer,
+	SongSelect:            ParseSongSelect,
+	TuneRequest:           ParseTuneRequest,
+	TimingClock:           ParseTimingClock,
+	Start:                 ParseStart,
+	Continue:              ParseContinue,
+	Stop:                  ParseStop,
+	ActiveSensing:         ParseActiveSensing,
+	Meta:                  ParseMeta,
 }
 
-// HeaderInfo holds midi file header info
-type HeaderInfo struct {
-	Format              Format
-	NumTracks           uint16
-	Division            uint16
-	DivisionType        DivisionType
-	TicksPerQuarterNote uint16
-	FramesPerSecond     uint8
-	TicksPerFrame       uint8
+// DeltaTime of the meta event
+func (e *MetaEvent) DeltaTime() uint32 {
+	return e.deltaTime
 }
 
-// File holds all midi chunks and other info
-type File struct {
-	io.WriterTo
-	io.ReaderFrom
-	Info   *HeaderInfo
-	Chunks []*Chunk
+// EventType of the meta event
+func (e *MetaEvent) EventType() EventType {
+	return e.eventType
 }
 
-// Event interface for all midi events
-type Event interface {
-	GetDeltaTime() uint32
-	GetEventType() EventType
+// DeltaTime of the system real time event
+func (e *SystemRealTimeEvent) DeltaTime() uint32 {
+	return e.deltaTime
 }
 
-// MetaEvent interface for all meta events
-type MetaEvent interface {
-	Event
-	GetMetaType() MetaType
+// EventType of the system real time event
+func (e *SystemRealTimeEvent) EventType() EventType {
+	return e.eventType
 }
 
-// CoreEvent to include by other event structs to satisfy Event interface
-type CoreEvent struct {
-	DeltaTime uint32
-	EventType EventType
+// DeltaTime of the system exclusive event
+func (e *SystemExclusiveEvent) DeltaTime() uint32 {
+	return e.deltaTime
 }
 
-// CoreMetaEvent to include by other meta event structs to satisfy MetaEvent interface
-type CoreMetaEvent struct {
-	CoreEvent
-	MetaType MetaType
+// EventType of the system exclusive event
+func (e *SystemExclusiveEvent) EventType() EventType {
+	return e.eventType
 }
 
-// SystemRealTimeEvent real time event
-type SystemRealTimeEvent struct {
-	CoreEvent
+// DeltaTime of the channel event
+func (e *ChannelEvent) DeltaTime() uint32 {
+	return e.deltaTime
 }
 
-// GetDeltaTime of the system real time event
-func (e *SystemRealTimeEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
+// EventType of the channel event
+func (e *ChannelEvent) EventType() EventType {
+	return e.eventType
 }
 
-// GetEventType of the system real time event
-func (e *SystemRealTimeEvent) GetEventType() EventType {
-	return e.EventType
+// DeltaTime of the system common event
+func (e *SystemCommonEvent) DeltaTime() uint32 {
+	return e.deltaTime
 }
 
-// SystemExclusiveEvent representation
-type SystemExclusiveEvent struct {
-	CoreEvent
-	Data []byte
-}
-
-// GetDeltaTime of the system exclusive event
-func (e *SystemExclusiveEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
-}
-
-// GetEventType of the system exclusive event
-func (e *SystemExclusiveEvent) GetEventType() EventType {
-	return e.EventType
-}
-
-// ChannelEvent represents channel voice and mode messages
-type ChannelEvent struct {
-	CoreEvent
-	Channel uint16
-	Value1  uint16
-	Value2  uint16
-}
-
-// GetDeltaTime of the channel event
-func (e *ChannelEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
-}
-
-// GetEventType of the channel event
-func (e *ChannelEvent) GetEventType() EventType {
-	return e.EventType
-}
-
-// SystemCommonEvent represents a system common message
-type SystemCommonEvent struct {
-	CoreEvent
-	Value1 uint16
-	Value2 uint16
-}
-
-// GetDeltaTime of the system common event
-func (e *SystemCommonEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
-}
-
-// GetEventType of the system common event
-func (e *SystemCommonEvent) GetEventType() EventType {
-	return e.EventType
-}
-
-// TextMetaEvent struct to represent all text related meta events
-type TextMetaEvent struct {
-	CoreMetaEvent
-	Text string
-}
-
-// GetDeltaTime of the text meta event
-func (e *TextMetaEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
-}
-
-// GetEventType of the text meta event
-func (e *TextMetaEvent) GetEventType() EventType {
-	return e.EventType
-}
-
-// GetMetaType of the text meta event
-func (e *TextMetaEvent) GetMetaType() MetaType {
-	return e.MetaType
-}
-
-// SequenceNumberMetaEvent struct to represent sequence number meta events
-type SequenceNumberMetaEvent struct {
-	CoreMetaEvent
-	Number uint16
-}
-
-// GetDeltaTime of the sequence number meta event
-func (e *SequenceNumberMetaEvent) GetDeltaTime() uint32 {
-	return e.DeltaTime
-}
-
-// GetEventType of the sequence number meta event
-func (e *SequenceNumberMetaEvent) GetEventType() EventType {
-	return e.EventType
-}
-
-// GetMetaType of the sequence number meta event
-func (e *SequenceNumberMetaEvent) GetMetaType() MetaType {
-	return e.MetaType
+// EventType of the system common event
+func (e *SystemCommonEvent) EventType() EventType {
+	return e.eventType
 }
 
 func eventTypeToString(eventType EventType) string {
@@ -317,8 +303,42 @@ func eventTypeToString(eventType EventType) string {
 	return ""
 }
 
-// ParseFunction type
-type ParseFunction func(statusByte uint8, deltaTime uint32, data []byte) (event Event, bytesRead uint32, err error)
+func metaTypeToString(metaType MetaType) string {
+	switch metaType {
+	case SequenceNumber:
+		return "SequenceNumber"
+	case Text:
+		return "Text"
+	case CopyrightNotice:
+		return "CopyrightNotice"
+	case TrackName:
+		return "TrackName"
+	case InstrumentName:
+		return "InstrumentName"
+	case Lyric:
+		return "Lyric"
+	case Marker:
+		return "Marker"
+	case CuePoint:
+		return "CuePoint"
+	case ChannelPrefix:
+		return "ChannelPrefix"
+	case EndOfTrack:
+		return "EndOfTrack"
+	case SetTempo:
+		return "SetTempo"
+	case SMPTEOffset:
+		return "SMPTEOffset"
+	case TimeSignature:
+		return "TimeSignature"
+	case KeySignature:
+		return "KeySignature"
+	case SequencerSpecific:
+		return "SequencerSpecific"
+	}
+
+	return ""
+}
 
 // ReadVariableLengthInteger reads a variable length integer from a slice of bytes
 func ReadVariableLengthInteger(bs []byte) (result uint32, bytesRead uint32, err error) {
@@ -345,8 +365,8 @@ func ReadVariableLengthInteger(bs []byte) (result uint32, bytesRead uint32, err 
 // ParseChannelEvent parses a channel voice or mode event
 func ParseChannelEvent(statusByte uint8, deltaTime uint32, eventType EventType, numValues uint8, data []byte) (event Event, bytesRead uint32, err error) {
 	ce := &ChannelEvent{}
-	ce.DeltaTime = deltaTime
-	ce.EventType = eventType
+	ce.deltaTime = deltaTime
+	ce.eventType = eventType
 	ce.Channel = uint16(statusByte & 0xF)
 
 	if len(data) < int(numValues) {
@@ -412,26 +432,26 @@ func ParsePitchWheelChange(statusByte uint8, deltaTime uint32, data []byte) (eve
 
 // ParseSystemExclusive parses a system exclusive event
 func ParseSystemExclusive(statusByte uint8, deltaTime uint32, data []byte) (event Event, bytesRead uint32, err error) {
-	l, bytesRead, err := ReadVariableLengthInteger(data)
+	numBytes, bytesRead, err := ReadVariableLengthInteger(data)
 	if err != nil {
 		return
 	}
 
 	data = data[bytesRead:]
-	if uint32(len(data)) < l {
+	if uint32(len(data)) < numBytes {
 		err = errors.New("given system exclusive event length exceeds available data length")
 		return
 	}
 
-	bytesRead += l
-	exclusiveData := make([]byte, l)
+	bytesRead += numBytes
+	exclusiveData := make([]byte, numBytes)
 
-	copy(data, exclusiveData)
+	copy(exclusiveData, data)
 
 	event = &SystemExclusiveEvent{
 		CoreEvent: CoreEvent{
-			DeltaTime: deltaTime,
-			EventType: SystemExclusive,
+			deltaTime: deltaTime,
+			eventType: SystemExclusive,
 		},
 		Data: exclusiveData,
 	}
@@ -442,8 +462,8 @@ func ParseSystemExclusive(statusByte uint8, deltaTime uint32, data []byte) (even
 // ParseSystemCommonEvent parses a system common event
 func ParseSystemCommonEvent(deltaTime uint32, eventType EventType, numValues uint8, data []byte) (event Event, bytesRead uint32, err error) {
 	ce := &SystemCommonEvent{}
-	ce.DeltaTime = deltaTime
-	ce.EventType = eventType
+	ce.deltaTime = deltaTime
+	ce.eventType = eventType
 
 	if len(data) < int(numValues) {
 		err = fmt.Errorf("system common event of type %v expects %v data bytes", eventTypeToString(eventType), numValues)
@@ -490,8 +510,8 @@ func ParseTuneRequest(statusByte uint8, deltaTime uint32, data []byte) (event Ev
 func ParseSystemRealTimeEvent(deltaTime uint32, eventType EventType) (event Event, bytesRead uint32, err error) {
 	event = &SystemRealTimeEvent{
 		CoreEvent: CoreEvent{
-			DeltaTime: deltaTime,
-			EventType: eventType,
+			deltaTime: deltaTime,
+			eventType: eventType,
 		},
 	}
 
@@ -523,39 +543,6 @@ func ParseActiveSensing(statusByte uint8, deltaTime uint32, data []byte) (event 
 	return ParseSystemRealTimeEvent(deltaTime, ActiveSensing)
 }
 
-// ParseTextMeta parses a text meta event
-func ParseTextMeta(deltaTime uint32, metaType MetaType, data []byte) (event Event, bytesRead uint32, err error) {
-	l, bytesRead, err := ReadVariableLengthInteger(data)
-	if err != nil {
-		return
-	}
-
-	data = data[bytesRead:]
-	if uint32(len(data)) < l {
-		err = errors.New("given meta text event length exceeds available data length")
-		return
-	}
-
-	bytesRead += l
-
-	event = &TextMetaEvent{
-		CoreMetaEvent: CoreMetaEvent{
-			CoreEvent: CoreEvent{
-				EventType: Meta,
-				DeltaTime: deltaTime,
-			},
-			MetaType: metaType,
-		},
-		Text: string(data[:l]),
-	}
-
-	return
-}
-
-func ParseSequenceNumberMeta(deltaTime uint32, data []byte) (event Event, bytesRead uint32, err error) {
-
-}
-
 // ParseMeta parse a meta event
 func ParseMeta(statusByte uint8, deltaTime uint32, data []byte) (event Event, bytesRead uint32, err error) {
 	if len(data) == 0 {
@@ -563,64 +550,49 @@ func ParseMeta(statusByte uint8, deltaTime uint32, data []byte) (event Event, by
 		return
 	}
 
-	metaStatusByte := data[0]
+	metaType := MetaType(data[0])
 	data = data[1:]
 
-	switch metaStatusByte {
-	case 0x0:
-	case 0x1:
-		event, bytesRead, err = ParseTextMeta(deltaTime, Text, data)
-	case 0x2:
-		event, bytesRead, err = ParseTextMeta(deltaTime, CopyrightNotice, data)
-	case 0x3:
-		event, bytesRead, err = ParseTextMeta(deltaTime, TrackName, data)
-	case 0x4:
-		event, bytesRead, err = ParseTextMeta(deltaTime, InstrumentName, data)
-	case 0x5:
-		event, bytesRead, err = ParseTextMeta(deltaTime, Lyric, data)
-	case 0x6:
-		event, bytesRead, err = ParseTextMeta(deltaTime, Marker, data)
-	case 0x7:
-		event, bytesRead, err = ParseTextMeta(deltaTime, CuePoint, data)
+	log.Printf("meta %v\n", metaTypeToString(metaType))
+
+	numBytes, bytesRead, err := ReadVariableLengthInteger(data)
+	if err != nil {
+		return
 	}
 
+	data = data[bytesRead:]
+	if uint32(len(data)) < numBytes {
+		err = errors.New("given meta event length exceeds available data length")
+		return
+	}
+
+	bytesRead += numBytes
+
+	metaData := make([]byte, numBytes)
+
+	copy(metaData, data)
+
+	event = &MetaEvent{
+		CoreEvent: CoreEvent{
+			eventType: Meta,
+			deltaTime: deltaTime,
+		},
+		MetaType: metaType,
+		Data:     metaData,
+	}
+
+	// Offset 1 for metaStatusByte
 	bytesRead++
 
 	return
 }
 
-var eventTypeToParseFunctionMapping = map[EventType]ParseFunction{
-	NoteOff:               ParseNoteOff,
-	NoteOn:                ParseNoteOn,
-	PolyphonicKeyPressure: ParsePolyphonicKeyPressure,
-	ControlChange:         ParseControlChange,
-	ProgramChange:         ParseProgramChange,
-	ChannelPressure:       ParseChannelPressure,
-	PitchWheelChange:      ParsePitchWheelChange,
-	SystemExclusive:       ParseSystemExclusive,
-	SongPositionPointer:   ParseSongPositionPointer,
-	SongSelect:            ParseSongSelect,
-	TuneRequest:           ParseTuneRequest,
-	TimingClock:           ParseTimingClock,
-	Start:                 ParseStart,
-	Continue:              ParseContinue,
-	Stop:                  ParseStop,
-	ActiveSensing:         ParseActiveSensing,
-	Meta:                  ParseMeta,
-}
-
 // Events get events from chunk
 func (c *Chunk) Events() ([]Event, error) {
-	// log.Printf("test\n")
-
-	// return nil, nil
-
 	runningStatusActive := false
 	var runningStatusByte uint8
 	data := c.Data
 	events := []Event{}
-
-	log.Printf("len bs %v\n", len(data))
 
 	for {
 		deltaTime, bytesRead, err := ReadVariableLengthInteger(data)
@@ -628,11 +600,7 @@ func (c *Chunk) Events() ([]Event, error) {
 			return nil, err
 		}
 
-		log.Printf("deltaTime: %v - bytesRead %v\n", deltaTime, bytesRead)
-
 		data = data[bytesRead:]
-
-		log.Printf("len bs %v\n", len(data))
 
 		if len(data) == 0 {
 			return nil, errors.New("expected another event after delta time")
@@ -643,7 +611,6 @@ func (c *Chunk) Events() ([]Event, error) {
 		if (statusByte >> 7) == 1 {
 			// Skip status byte
 			data = data[1:]
-			log.Printf("status len bs %v\n", len(data))
 		} else {
 			// Data byte, we expect runningStatusActive to be true
 			if !runningStatusActive {
@@ -652,8 +619,6 @@ func (c *Chunk) Events() ([]Event, error) {
 
 			statusByte = runningStatusByte
 		}
-
-		log.Printf("status byte %x\n", statusByte)
 
 		var parseFunc ParseFunction
 		var event Event
@@ -723,17 +688,8 @@ func (c *Chunk) Events() ([]Event, error) {
 			return nil, err
 		}
 
-		if event != nil {
-			log.Printf("event %v\n", event)
-
-			events = append(events, event)
-		}
-
-		log.Printf("deltaTime: %v \n", deltaTime)
-
+		events = append(events, event)
 		data = data[bytesRead:]
-
-		log.Printf("len bs %v\n", len(data))
 
 		if len(data) == 0 {
 			break
