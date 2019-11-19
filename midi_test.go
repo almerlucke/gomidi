@@ -78,6 +78,8 @@ func TestMidi(t *testing.T) {
 		t.Fatalf("err %v", err)
 	}
 
+	defer r.Close()
+
 	mf := &File{}
 
 	_, err = mf.ReadFrom(r)
@@ -85,7 +87,7 @@ func TestMidi(t *testing.T) {
 		t.Fatalf("err %v", err)
 	}
 
-	t.Logf("%v", *mf.Info)
+	t.Logf("%v", *mf.Header)
 	t.Logf("chunks %v\n", mf.Chunks)
 
 	if len(mf.Tracks) > 0 {

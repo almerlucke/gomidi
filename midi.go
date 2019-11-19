@@ -25,8 +25,8 @@ type Chunk struct {
 	Data   []byte
 }
 
-// HeaderInfo holds midi file header info
-type HeaderInfo struct {
+// FileHeader holds midi file header info
+type FileHeader struct {
 	Format              Format
 	NumTracks           uint16
 	Division            uint16
@@ -46,7 +46,7 @@ type File struct {
 	io.WriterTo
 	io.ReaderFrom
 	// Global file info
-	Info *HeaderInfo
+	Header *FileHeader
 	// All tracks in the order they appeared
 	Tracks []*Track
 	// Also keep a pointer to the raw chunks
