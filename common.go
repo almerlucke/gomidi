@@ -2,6 +2,7 @@ package midi
 
 import (
 	"fmt"
+	"io"
 )
 
 // SystemCommonEvent represents a system common message
@@ -9,6 +10,16 @@ type SystemCommonEvent struct {
 	coreEvent
 	Value1 uint16
 	Value2 uint16
+}
+
+// String representation
+func (e *SystemCommonEvent) String() string {
+	return fmt.Sprintf("%v: deltaTime %v", eventTypeToString(e.eventType), e.deltaTime)
+}
+
+// WriteTo writer
+func (e *SystemCommonEvent) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
 }
 
 // DeltaTime of the system common event

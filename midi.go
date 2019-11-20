@@ -1,6 +1,7 @@
 package midi
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -55,6 +56,8 @@ type File struct {
 
 // Event interface for all midi events
 type Event interface {
+	io.WriterTo
+	fmt.Stringer
 	DeltaTime() uint32
 	EventType() EventType
 }

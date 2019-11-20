@@ -2,6 +2,7 @@ package midi
 
 import (
 	"fmt"
+	"io"
 )
 
 // ChannelEvent represents channel voice and mode messages
@@ -10,6 +11,54 @@ type ChannelEvent struct {
 	Channel uint16
 	Value1  uint16
 	Value2  uint16
+}
+
+// String representation
+func (e *ChannelEvent) String() string {
+	if e.eventType == PitchWheelChange || e.eventType == ProgramChange {
+		return fmt.Sprintf("%v: deltaTime %v, channel %v, value %v", eventTypeToString(e.eventType), e.deltaTime, e.Channel, e.Value1)
+	}
+
+	return fmt.Sprintf("%v: deltaTime %v, channel %v, value1 %v, value2 %v", eventTypeToString(e.eventType), e.deltaTime, e.Channel, e.Value1, e.Value2)
+}
+
+// WriteTo writer
+func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
+	var totalBytesWritten int64
+
+	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	data := make([]byte, 3)
+	data[1] = byte(e.Value1)
+	data[2] = byte(e.Value2)
+
+	switch e.eventType {
+	case NoteOff:
+		data[0] = 0x8
+	case NoteOn:
+		data[0] = 0x9
+	case PolyphonicKeyPressure:
+		data[0] = 0xA
+	case ControlChange:
+		data[0] = 0xB
+	case ProgramChange:
+		data[0] = 0xC
+	case ChannelPressure:
+		data[0] = 0xD
+	case PitchWheelChange:
+		data[0] = 0xE
+		data[1] = byte(e.Value1 & 0x7F)
+		data[2] = byte(e.Value1 >> 7)
+	}
+
+	data[0] = (data[0] << 4) ^ byte(e.Channel)
+
+	return 0, nil
 }
 
 // DeltaTime of the channel event
@@ -37,6 +86,7 @@ func parseChannelEvent(statusByte uint8, deltaTime uint32, eventType EventType, 
 	if numValues == 1 {
 		ce.Value1 = uint16(data[0])
 	} else if numValues == 2 {
+		ce.Value1 = uint16(data[0])
 		ce.Value2 = uint16(data[1])
 	}
 

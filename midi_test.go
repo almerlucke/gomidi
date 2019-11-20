@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestVariableLengthInteger(t *testing.T) {
+func TestReadVariableLengthInteger(t *testing.T) {
 	// Test valid input
 	bs := make([]byte, 2)
 	bs[0] = 0xFF
@@ -70,6 +70,77 @@ func TestVariableLengthInteger(t *testing.T) {
 	}
 }
 
+func TestWriteVariableLengthVariable(t *testing.T) {
+	bs := make([]byte, 1)
+	bs[0] = 0x0
+
+	data := writeVariableLengthValue(0)
+	if len(data) != len(bs) {
+		t.Fatalf("0: inequal length of bytes %d - %d", len(data), len(bs))
+	}
+
+	for index, b := range data {
+		if bs[index] != b {
+			t.Errorf("0: byte %d is not equal", index)
+		}
+	}
+
+	t.Log("0 passed")
+
+	bs = make([]byte, 2)
+	bs[0] = 0xFF
+	bs[1] = 0x7F
+
+	data = writeVariableLengthValue(16383)
+	if len(data) != len(bs) {
+		t.Fatalf("16383: inequal length of bytes %d - %d", len(data), len(bs))
+	}
+
+	for index, b := range data {
+		if bs[index] != b {
+			t.Errorf("16383: byte %d is not equal", index)
+		}
+	}
+
+	t.Log("16383 passed")
+
+	bs = make([]byte, 2)
+	bs[0] = 0x87
+	bs[1] = 0x68
+
+	data = writeVariableLengthValue(1000)
+	if len(data) != len(bs) {
+		t.Fatalf("1000: inequal length of bytes %d - %d", len(data), len(bs))
+	}
+
+	for index, b := range data {
+		if bs[index] != b {
+			t.Errorf("1000: byte %d is not equal", index)
+		}
+	}
+
+	t.Log("1000 passed")
+
+	bs = make([]byte, 3)
+	bs[0] = 0xBD
+	bs[1] = 0x84
+	bs[2] = 0x40
+
+	data = writeVariableLengthValue(1000000)
+
+	if len(data) != len(bs) {
+		t.Fatalf("1000000: inequal length of bytes %d - %d", len(data), len(bs))
+	}
+
+	for index, b := range data {
+		if bs[index] != b {
+			t.Errorf("1000000: byte %d is not equal", index)
+		}
+	}
+
+	t.Log("1000000 passed")
+}
+
 // TestMidi test midi
 func TestMidi(t *testing.T) {
 
@@ -91,10 +162,12 @@ func TestMidi(t *testing.T) {
 	t.Logf("chunks %v\n", mf.Chunks)
 
 	if len(mf.Tracks) > 0 {
-		track := mf.Tracks[3]
+		track := mf.Tracks[2]
 
-		for _, event := range track.Events {
-			t.Logf("deltaTime %v - event %v", event.DeltaTime(), eventTypeToString(event.EventType()))
+		for index, event := range track.Events {
+			if index < 10 {
+				t.Logf("%v", event)
+			}
 		}
 	}
 }

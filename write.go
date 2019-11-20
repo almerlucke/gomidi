@@ -5,6 +5,43 @@ import (
 	"io"
 )
 
+func writeVariableLengthValue(value uint32) []byte {
+	data := []byte{}
+
+	// Start xor with 0 byte
+	xor := byte(0x0)
+
+	for {
+		// Get first 7 bits
+		b := byte(value & 0x7F)
+
+		// Xor with current xor
+		b ^= xor
+
+		// Set xor to 0x80 = 10000000 in bits
+		xor = byte(0x80)
+
+		// Push byte to front
+		data = append([]byte{b}, data...)
+
+		// Shift to next 7 bits
+		value >>= 7
+
+		// Stop if value is zero
+		if value == 0 {
+			break
+		}
+	}
+
+	return data
+}
+
+func writeEvents(events []Event, w io.Writer) {
+	// for _, event := range events {
+
+	// }
+}
+
 // WriteTo writes a chunk to writer
 func (c *Chunk) WriteTo(w io.Writer) (int64, error) {
 	// Length needs to be written as big endian

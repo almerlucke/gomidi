@@ -2,6 +2,8 @@ package midi
 
 import (
 	"errors"
+	"fmt"
+	"io"
 )
 
 // MetaType to identify meta events
@@ -45,6 +47,16 @@ type MetaEvent struct {
 	coreEvent
 	MetaType MetaType
 	Data     []byte
+}
+
+// String representation
+func (e *MetaEvent) String() string {
+	return fmt.Sprintf("%v: deltaTime %v, type %v, content %v", eventTypeToString(e.eventType), e.deltaTime, metaTypeToString(e.MetaType), string(e.Data))
+}
+
+// WriteTo writer
+func (e *MetaEvent) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
 }
 
 // DeltaTime of the meta event

@@ -1,8 +1,23 @@
 package midi
 
+import (
+	"fmt"
+	"io"
+)
+
 // SystemRealTimeEvent real time event
 type SystemRealTimeEvent struct {
 	coreEvent
+}
+
+// String representation
+func (e *SystemRealTimeEvent) String() string {
+	return fmt.Sprintf("%v: deltaTime %v", eventTypeToString(e.eventType), e.deltaTime)
+}
+
+// WriteTo writer
+func (e *SystemRealTimeEvent) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
 }
 
 // DeltaTime of the system real time event
