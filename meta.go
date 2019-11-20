@@ -130,16 +130,6 @@ func (e *MetaEvent) WriteTo(w io.Writer) (int64, error) {
 	return totalBytesWritten + int64(n), nil
 }
 
-// DeltaTime of the meta event
-func (e *MetaEvent) DeltaTime() uint32 {
-	return e.deltaTime
-}
-
-// EventType of the meta event
-func (e *MetaEvent) EventType() EventType {
-	return e.eventType
-}
-
 // metaTypeToString converts a type to a string for debugging
 func metaTypeToString(metaType MetaType) string {
 	switch metaType {

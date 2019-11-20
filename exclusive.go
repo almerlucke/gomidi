@@ -2,7 +2,6 @@ package midi
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
@@ -10,11 +9,6 @@ import (
 type SystemExclusiveEvent struct {
 	coreEvent
 	Data []byte
-}
-
-// String representation
-func (e *SystemExclusiveEvent) String() string {
-	return fmt.Sprintf("%v: deltaTime %v", eventTypeToString(e.eventType), e.deltaTime)
 }
 
 // WriteTo writer
@@ -49,16 +43,6 @@ func (e *SystemExclusiveEvent) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return totalBytesWritten + int64(n), nil
-}
-
-// DeltaTime of the system exclusive event
-func (e *SystemExclusiveEvent) DeltaTime() uint32 {
-	return e.deltaTime
-}
-
-// EventType of the system exclusive event
-func (e *SystemExclusiveEvent) EventType() EventType {
-	return e.eventType
 }
 
 // parseSystemExclusive parses a system exclusive event

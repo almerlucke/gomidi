@@ -70,16 +70,6 @@ func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 	return totalBytesWritten + int64(n), nil
 }
 
-// DeltaTime of the channel event
-func (e *ChannelEvent) DeltaTime() uint32 {
-	return e.deltaTime
-}
-
-// EventType of the channel event
-func (e *ChannelEvent) EventType() EventType {
-	return e.eventType
-}
-
 // parseChannelEvent parses a channel voice or mode event
 func parseChannelEvent(statusByte uint8, deltaTime uint32, eventType EventType, numValues uint8, data []byte) (event Event, bytesRead uint32, err error) {
 	ce := &ChannelEvent{}

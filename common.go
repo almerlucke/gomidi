@@ -12,11 +12,6 @@ type SystemCommonEvent struct {
 	Value2 uint16
 }
 
-// String representation
-func (e *SystemCommonEvent) String() string {
-	return fmt.Sprintf("%v: deltaTime %v", eventTypeToString(e.eventType), e.deltaTime)
-}
-
 // WriteTo writer
 func (e *SystemCommonEvent) WriteTo(w io.Writer) (int64, error) {
 	var totalBytesWritten int64
@@ -55,16 +50,6 @@ func (e *SystemCommonEvent) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return totalBytesWritten + int64(n), nil
-}
-
-// DeltaTime of the system common event
-func (e *SystemCommonEvent) DeltaTime() uint32 {
-	return e.deltaTime
-}
-
-// EventType of the system common event
-func (e *SystemCommonEvent) EventType() EventType {
-	return e.eventType
 }
 
 // parseSystemCommonEvent parses a system common event

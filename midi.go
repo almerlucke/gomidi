@@ -5,19 +5,19 @@ import (
 	"io"
 )
 
-// ChunkType indicates the type of chunk we are dealing with
+// ChunkType of the chunk
 type ChunkType string
 
-// Format type
+// Format of the midi file
 type Format uint16
 
-// DivisionType midi delta time
+// DivisionType of the header chunk
 type DivisionType uint8
 
 // EventType to identify midi events
 type EventType uint8
 
-// Chunk holds midi chunk information
+// Chunk separates the midi file in parts
 type Chunk struct {
 	io.WriterTo
 	io.ReaderFrom
@@ -26,7 +26,7 @@ type Chunk struct {
 	Data   []byte
 }
 
-// FileHeader holds midi file header info
+// FileHeader is mandatory in a midi file and holds information on number of tracks and tempo
 type FileHeader struct {
 	Format              Format
 	NumTracks           uint16
@@ -37,12 +37,12 @@ type FileHeader struct {
 	TicksPerFrame       uint8
 }
 
-// Track holds track info (events)
+// Track contains the midi events (messages)
 type Track struct {
 	Events []Event
 }
 
-// File holds all midi chunks and other info
+// File contains the header, tracks and raw midi chunks, can be used for reading and writing
 type File struct {
 	io.WriterTo
 	io.ReaderFrom
@@ -54,7 +54,7 @@ type File struct {
 	Chunks []*Chunk
 }
 
-// Event interface for all midi events
+// Event is the minimal interface all midi event types should conform to
 type Event interface {
 	io.WriterTo
 	fmt.Stringer
@@ -62,10 +62,25 @@ type Event interface {
 	EventType() EventType
 }
 
-// coreEvent to include by other event structs to satisfy Event interface
+// coreEvent to include by other event structs to be able to satisfy Event interface
 type coreEvent struct {
 	deltaTime uint32
 	eventType EventType
+}
+
+// String generates default event string
+func (e *coreEvent) String() string {
+	return fmt.Sprintf("%v: deltaTime %v", eventTypeToString(e.eventType), e.deltaTime)
+}
+
+// DeltaTime returns 'private' deltatime
+func (e *coreEvent) DeltaTime() uint32 {
+	return e.deltaTime
+}
+
+// EventType return 'private' event type
+func (e *coreEvent) EventType() EventType {
+	return e.eventType
 }
 
 const (
