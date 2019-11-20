@@ -53,9 +53,14 @@ func readVariableLengthInteger(data []byte) (result uint32, bytesRead uint32, er
 	return
 }
 
-// parseFileHeader returns a file header from header chunk data
-func parseFileHeader(data []byte) *FileHeader {
+// FileHeader parses a file header from a chunk
+func (c *Chunk) FileHeader() (*FileHeader, error) {
+	data := c.Data
 	header := &FileHeader{}
+
+	if c.Length != 6 {
+		return nil, errors.New("midi header chunk data should be 6 bytes long")
+	}
 
 	header.Format = Format(binary.BigEndian.Uint16(data))
 	header.NumTracks = binary.BigEndian.Uint16(data[2:])
@@ -70,11 +75,12 @@ func parseFileHeader(data []byte) *FileHeader {
 		header.TicksPerQuarterNote = header.Division
 	}
 
-	return header
+	return header, nil
 }
 
-// parseTrackEvents returns events from track chunk data
-func parseTrackEvents(data []byte) ([]Event, error) {
+// Track parses a track object from a chunk
+func (c *Chunk) Track() (*Track, error) {
+	data := c.Data
 	runningStatusActive := false
 	var runningStatusByte uint8
 	events := []Event{}
@@ -181,7 +187,7 @@ func parseTrackEvents(data []byte) ([]Event, error) {
 		}
 	}
 
-	return events, nil
+	return &Track{Events: events}, nil
 }
 
 // ReadFrom reads chunk data from reader
@@ -215,14 +221,14 @@ func (c *Chunk) ReadFrom(r io.Reader) (int64, error) {
 
 // ReadFrom reads a midi file from reader
 func (f *File) ReadFrom(r io.Reader) (int64, error) {
-	var n int64
+	var totalBytesRead int64
 
 	f.Chunks = []*Chunk{}
 	f.Tracks = []*Track{}
 
 	for {
 		chunk := &Chunk{}
-		numBytes, err := chunk.ReadFrom(r)
+		chunkBytesRead, err := chunk.ReadFrom(r)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -231,29 +237,28 @@ func (f *File) ReadFrom(r io.Reader) (int64, error) {
 			return 0, err
 		}
 
+		totalBytesRead += chunkBytesRead
+
 		f.Chunks = append(f.Chunks, chunk)
 
 		if chunk.Type == HeaderType {
-			if chunk.Length != 6 {
-				return 0, errors.New("midi header chunk data should be 6 bytes long")
+			f.Header, err = chunk.FileHeader()
+			if err != nil {
+				return 0, err
 			}
-
-			f.Header = parseFileHeader(chunk.Data)
 		} else if chunk.Type == TrackType {
-			events, err := parseTrackEvents(chunk.Data)
+			track, err := chunk.Track()
 			if err != nil {
 				return 0, err
 			}
 
-			f.Tracks = append(f.Tracks, &Track{Events: events})
+			f.Tracks = append(f.Tracks, track)
 		}
-
-		n += int64(numBytes)
 	}
 
 	if f.Header == nil {
 		return 0, errors.New("no midi header chunk found")
 	}
 
-	return n, nil
+	return totalBytesRead, nil
 }

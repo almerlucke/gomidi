@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-func writeVariableLengthValue(value uint32) []byte {
+func writeVariableLengthInteger(value uint32) []byte {
 	data := []byte{}
 
 	// Start xor with 0 byte

@@ -26,7 +26,7 @@ func (e *ChannelEvent) String() string {
 func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 	var totalBytesWritten int64
 
-	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	n, err := w.Write(writeVariableLengthInteger(e.deltaTime))
 	if err != nil {
 		return 0, err
 	}

@@ -21,7 +21,7 @@ func (e *SystemExclusiveEvent) String() string {
 func (e *SystemExclusiveEvent) WriteTo(w io.Writer) (int64, error) {
 	var totalBytesWritten int64
 
-	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	n, err := w.Write(writeVariableLengthInteger(e.deltaTime))
 	if err != nil {
 		return 0, err
 	}
@@ -35,7 +35,7 @@ func (e *SystemExclusiveEvent) WriteTo(w io.Writer) (int64, error) {
 
 	totalBytesWritten += int64(n)
 
-	lengthData := writeVariableLengthValue(uint32(len(e.Data)))
+	lengthData := writeVariableLengthInteger(uint32(len(e.Data)))
 	n, err = w.Write(lengthData)
 	if err != nil {
 		return 0, err

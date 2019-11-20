@@ -74,7 +74,7 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	bs := make([]byte, 1)
 	bs[0] = 0x0
 
-	data := writeVariableLengthValue(0)
+	data := writeVariableLengthInteger(0)
 	if len(data) != len(bs) {
 		t.Fatalf("0: inequal length of bytes %d - %d", len(data), len(bs))
 	}
@@ -91,7 +91,7 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	bs[0] = 0xFF
 	bs[1] = 0x7F
 
-	data = writeVariableLengthValue(16383)
+	data = writeVariableLengthInteger(16383)
 	if len(data) != len(bs) {
 		t.Fatalf("16383: inequal length of bytes %d - %d", len(data), len(bs))
 	}
@@ -108,7 +108,7 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	bs[0] = 0x87
 	bs[1] = 0x68
 
-	data = writeVariableLengthValue(1000)
+	data = writeVariableLengthInteger(1000)
 	if len(data) != len(bs) {
 		t.Fatalf("1000: inequal length of bytes %d - %d", len(data), len(bs))
 	}
@@ -126,7 +126,7 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	bs[1] = 0x84
 	bs[2] = 0x40
 
-	data = writeVariableLengthValue(1000000)
+	data = writeVariableLengthInteger(1000000)
 
 	if len(data) != len(bs) {
 		t.Fatalf("1000000: inequal length of bytes %d - %d", len(data), len(bs))
@@ -139,16 +139,12 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	}
 
 	t.Log("1000000 passed")
-
-	data = writeVariableLengthValue(1152)
-	value, _, _ := readVariableLengthInteger(data)
-	t.Logf("returned value %v", value)
 }
 
 // TestMidi test midi
 func TestMidi(t *testing.T) {
 
-	fo, err := os.Open("data/teddybear_test.mid")
+	fo, err := os.Open("data/teddybear.mid")
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
