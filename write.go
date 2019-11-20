@@ -1,6 +1,7 @@
 package midi
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 )
@@ -36,10 +37,21 @@ func writeVariableLengthValue(value uint32) []byte {
 	return data
 }
 
-func writeEvents(events []Event, w io.Writer) {
-	// for _, event := range events {
+// Chunk from track
+func (t *Track) Chunk() *Chunk {
+	var buf bytes.Buffer
 
-	// }
+	for _, event := range t.Events {
+		event.WriteTo(&buf)
+	}
+
+	data := buf.Bytes()
+
+	return &Chunk{
+		Type:   TrackType,
+		Length: uint32(len(data)),
+		Data:   data,
+	}
 }
 
 // WriteTo writes a chunk to writer

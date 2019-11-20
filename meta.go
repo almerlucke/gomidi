@@ -72,6 +72,48 @@ func (e *MetaEvent) WriteTo(w io.Writer) (int64, error) {
 
 	totalBytesWritten += int64(n)
 
+	var metaType byte
+
+	switch e.MetaType {
+	case SequenceNumber:
+		metaType = 0x0
+	case Text:
+		metaType = 0x1
+	case CopyrightNotice:
+		metaType = 0x2
+	case TrackName:
+		metaType = 0x3
+	case InstrumentName:
+		metaType = 0x4
+	case Lyric:
+		metaType = 0x5
+	case Marker:
+		metaType = 0x6
+	case CuePoint:
+		metaType = 0x7
+	case ChannelPrefix:
+		metaType = 0x20
+	case EndOfTrack:
+		metaType = 0x2F
+	case SetTempo:
+		metaType = 0x51
+	case SMPTEOffset:
+		metaType = 0x54
+	case TimeSignature:
+		metaType = 0x58
+	case KeySignature:
+		metaType = 0x59
+	case SequencerSpecific:
+		metaType = 0x7F
+	}
+
+	n, err = w.Write([]byte{metaType})
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
 	lengthData := writeVariableLengthValue(uint32(len(e.Data)))
 	n, err = w.Write(lengthData)
 	if err != nil {

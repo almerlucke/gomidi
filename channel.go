@@ -37,6 +37,8 @@ func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 	data[1] = byte(e.Value1)
 	data[2] = byte(e.Value2)
 
+	numBytes := 3
+
 	switch e.eventType {
 	case NoteOff:
 		data[0] = 0x8
@@ -48,8 +50,10 @@ func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 		data[0] = 0xB
 	case ProgramChange:
 		data[0] = 0xC
+		numBytes = 2
 	case ChannelPressure:
 		data[0] = 0xD
+		numBytes = 2
 	case PitchWheelChange:
 		data[0] = 0xE
 		data[1] = byte(e.Value1 & 0x7F)
@@ -58,7 +62,7 @@ func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 
 	data[0] = (data[0] << 4) ^ byte(e.Channel)
 
-	n, err = w.Write(data)
+	n, err = w.Write(data[:numBytes])
 	if err != nil {
 		return 0, err
 	}

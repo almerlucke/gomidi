@@ -139,21 +139,25 @@ func TestWriteVariableLengthVariable(t *testing.T) {
 	}
 
 	t.Log("1000000 passed")
+
+	data = writeVariableLengthValue(1152)
+	value, _, _ := readVariableLengthInteger(data)
+	t.Logf("returned value %v", value)
 }
 
 // TestMidi test midi
 func TestMidi(t *testing.T) {
 
-	r, err := os.Open("data/teddybear.mid")
+	fo, err := os.Open("data/teddybear_test.mid")
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
 
-	defer r.Close()
+	defer fo.Close()
 
 	mf := &File{}
 
-	_, err = mf.ReadFrom(r)
+	_, err = mf.ReadFrom(fo)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -162,7 +166,7 @@ func TestMidi(t *testing.T) {
 	t.Logf("chunks %v\n", mf.Chunks)
 
 	if len(mf.Tracks) > 0 {
-		track := mf.Tracks[2]
+		track := mf.Tracks[1]
 
 		for index, event := range track.Events {
 			if index < 10 {
@@ -170,4 +174,14 @@ func TestMidi(t *testing.T) {
 			}
 		}
 	}
+
+	// mft := &File{}
+	// mft.Chunks = []*Chunk{mf.Chunks[0]}
+	// for _, track := range mf.Tracks {
+	// 	mft.Chunks = append(mft.Chunks, track.Chunk())
+	// }
+
+	// f, err := os.Create("data/teddybear_test.mid")
+	// defer f.Close()
+	// mft.WriteTo(f)
 }
