@@ -19,7 +19,36 @@ func (e *SystemExclusiveEvent) String() string {
 
 // WriteTo writer
 func (e *SystemExclusiveEvent) WriteTo(w io.Writer) (int64, error) {
-	return 0, nil
+	var totalBytesWritten int64
+
+	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	n, err = w.Write([]byte{0xF0})
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	lengthData := writeVariableLengthValue(uint32(len(e.Data)))
+	n, err = w.Write(lengthData)
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	n, err = w.Write(e.Data)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalBytesWritten + int64(n), nil
 }
 
 // DeltaTime of the system exclusive event

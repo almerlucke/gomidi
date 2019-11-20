@@ -17,7 +17,36 @@ func (e *SystemRealTimeEvent) String() string {
 
 // WriteTo writer
 func (e *SystemRealTimeEvent) WriteTo(w io.Writer) (int64, error) {
-	return 0, nil
+	var totalBytesWritten int64
+
+	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	var statusByte byte
+
+	switch e.eventType {
+	case TimingClock:
+		statusByte = 0xF8
+	case Start:
+		statusByte = 0xFA
+	case Continue:
+		statusByte = 0xFB
+	case Stop:
+		statusByte = 0xFC
+	case ActiveSensing:
+		statusByte = 0xFE
+	}
+
+	n, err = w.Write([]byte{statusByte})
+	if err != nil {
+		return 0, err
+	}
+
+	return totalBytesWritten + int64(n), nil
 }
 
 // DeltaTime of the system real time event

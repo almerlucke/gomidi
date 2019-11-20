@@ -58,7 +58,12 @@ func (e *ChannelEvent) WriteTo(w io.Writer) (int64, error) {
 
 	data[0] = (data[0] << 4) ^ byte(e.Channel)
 
-	return 0, nil
+	n, err = w.Write(data)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalBytesWritten + int64(n), nil
 }
 
 // DeltaTime of the channel event

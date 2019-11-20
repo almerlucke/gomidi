@@ -19,7 +19,42 @@ func (e *SystemCommonEvent) String() string {
 
 // WriteTo writer
 func (e *SystemCommonEvent) WriteTo(w io.Writer) (int64, error) {
-	return 0, nil
+	var totalBytesWritten int64
+
+	n, err := w.Write(writeVariableLengthValue(e.deltaTime))
+	if err != nil {
+		return 0, err
+	}
+
+	totalBytesWritten += int64(n)
+
+	data := make([]byte, 3)
+	numBytes := 1
+
+	data[1] = byte(e.Value1)
+	data[2] = byte(e.Value2)
+
+	switch e.eventType {
+	case SongPositionPointer:
+		data[0] = 0xF2
+		data[1] = byte(e.Value1 & 0x7F)
+		data[2] = byte(e.Value1 >> 7)
+		numBytes = 3
+	case SongSelect:
+		data[0] = 0xF3
+		numBytes = 2
+	case TuneRequest:
+		data[0] = 0xF6
+	}
+
+	data = data[:numBytes]
+
+	n, err = w.Write(data)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalBytesWritten + int64(n), nil
 }
 
 // DeltaTime of the system common event
@@ -46,6 +81,7 @@ func parseSystemCommonEvent(deltaTime uint32, eventType EventType, numValues uin
 	if numValues == 1 {
 		ce.Value1 = uint16(data[0])
 	} else if numValues == 2 {
+		ce.Value1 = uint16(data[0])
 		ce.Value2 = uint16(data[1])
 	}
 
