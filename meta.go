@@ -114,8 +114,7 @@ func (e *MetaEvent) WriteTo(w io.Writer) (int64, error) {
 
 	totalBytesWritten += int64(n)
 
-	lengthData := writeVariableLengthInteger(uint32(len(e.Data)))
-	n, err = w.Write(lengthData)
+	n, err = w.Write(writeVariableLengthInteger(uint32(len(e.Data))))
 	if err != nil {
 		return 0, err
 	}
