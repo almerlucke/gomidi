@@ -54,6 +54,14 @@ type File struct {
 	Chunks []*Chunk
 }
 
+// NewFile creates a new initialized file
+func NewFile() *File {
+	return &File{
+		Chunks: []*Chunk{},
+		Tracks: []*Track{},
+	}
+}
+
 // Event is the minimal interface all midi event types should conform to
 type Event interface {
 	io.WriterTo

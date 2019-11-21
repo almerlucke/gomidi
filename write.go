@@ -37,6 +37,21 @@ func writeVariableLengthInteger(value uint32) []byte {
 	return data
 }
 
+// Chunk from file header
+func (h *FileHeader) Chunk() *Chunk {
+	bytes := make([]byte, 6)
+
+	binary.BigEndian.PutUint16(bytes, uint16(h.Format))
+	binary.BigEndian.PutUint16(bytes[2:], h.NumTracks)
+	binary.BigEndian.PutUint16(bytes[4:], h.Division)
+
+	return &Chunk{
+		Type:   HeaderType,
+		Length: uint32(6),
+		Data:   bytes,
+	}
+}
+
 // Chunk from track
 func (t *Track) Chunk() *Chunk {
 	var buf bytes.Buffer
