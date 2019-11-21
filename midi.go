@@ -69,6 +69,7 @@ type Event interface {
 	DeltaTime() uint32
 	SetDeltaTime(uint32)
 	EventType() EventType
+	SetEventType(EventType)
 }
 
 // coreEvent to include by other event structs to be able to satisfy Event interface
@@ -90,6 +91,11 @@ func (e *coreEvent) DeltaTime() uint32 {
 // SetDeltaTime changes delta time
 func (e *coreEvent) SetDeltaTime(deltaTime uint32) {
 	e.deltaTime = deltaTime
+}
+
+// SetEventType changes event type
+func (e *coreEvent) SetEventType(eventType EventType) {
+	e.eventType = eventType
 }
 
 // EventType return 'private' event type
