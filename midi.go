@@ -67,6 +67,7 @@ type Event interface {
 	io.WriterTo
 	fmt.Stringer
 	DeltaTime() uint32
+	SetDeltaTime(uint32)
 	EventType() EventType
 }
 
@@ -84,6 +85,11 @@ func (e *coreEvent) String() string {
 // DeltaTime returns 'private' deltatime
 func (e *coreEvent) DeltaTime() uint32 {
 	return e.deltaTime
+}
+
+// SetDeltaTime changes delta time
+func (e *coreEvent) SetDeltaTime(deltaTime uint32) {
+	e.deltaTime = deltaTime
 }
 
 // EventType return 'private' event type
